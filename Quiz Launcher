@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estrella Ngambis BIB</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Font kustom untuk tampilan yang bersih */
+        body {
+            font-family: "Inter", sans-serif;
+            overflow: hidden; /* Mencegah scroll saat ada efek */
+        }
+        /* Sembunyikan layar pada awalnya */
+        .screen {
+            display: none;
+        }
+        /* Overlay untuk modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        /* Efek hover pada label opsi */
+        .options-item label:hover {
+            cursor: pointer;
+            color: #4a5568; 
+        }
+
+        /* --- Efek Visual --- */
+        #effects-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Agar tidak bisa diklik */
+            z-index: 9999;
+            overflow: hidden;
+        }
+
+        /* Efek Hati (Love) */
+        .heart {
+            position: absolute;
+            font-size: 2rem;
+            bottom: -50px; /* Mulai dari bawah layar */
+            animation: floatUp 4s ease-in forwards;
+        }
+
+        @keyframes floatUp {
+            to {
+                transform: translateY(-100vh) rotate(15deg);
+                opacity: 0;
+            }
+        }
+
+        /* Efek Getar (Shock) */
+        @keyframes shock {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shock-effect {
+          animation: shock 0.4s linear 3; /* Bergetar 3 kali */
+        }
+    </style>
+</head>
+<body class="bg-yellow-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Container untuk Efek Visual (Hati & Getar) -->
+    <div id="effects-container"></div>
+
+    <div id="app" class="bg-white rounded-xl shadow-lg p-8 max-w-2xl w-full text-center relative z-10">
+
+        <!-- Layar Konfigurasi -->
+        <div id="configScreen" class="screen block">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Estrella Ngambis BIB</h1>
+            <p class="text-gray-600 mb-6">Unggah file soal (.txt), lalu pilih durasi kuis.</p>
+
+            <div class="mb-6">
+                <label for="fileInput" class="block text-gray-700 text-sm font-bold mb-2">Pilih File Soal (.txt):</label>
+                <input type="file" id="fileInput" accept=".txt" class="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-amber-50 file:text-amber-700
+                    hover:file:bg-amber-100 cursor-pointer">
+            </div>
+
+            <div class="mb-8">
+                <label for="quizDuration" class="block text-gray-700 text-sm font-bold mb-2">Pilih Durasi Kuis:</label>
+                <select id="quizDuration" class="shadow border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent">
+                    <option value="10">10 Menit</option>
+                    <option value="20">20 Menit</option>
+                    <option value="30">30 Menit</option>
+                    <option value="40">40 Menit</option>
+                </select>
+            </div>
+
+            <button id="startQuizBtn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-full transition duration-300 ease-in-out shadow-md opacity-50 cursor-not-allowed" disabled>
+                Mulai Kuis
+            </button>
+            <div id="fileError" class="text-red-500 text-sm mt-3 hidden">Gagal membaca file atau format tidak sesuai.</div>
+        </div>
+
+        <!-- Layar Kuis -->
+        <div id="quizScreen" class="screen">
+            <div class="flex justify-between items-center mb-6">
+                <div class="text-left text-gray-700">Soal <span id="currentQuestionNum">1</span> dari <span id="totalQuestionsNum">0</span></div>
+                <div id="timerDisplay" class="bg-amber-100 text-amber-700 text-lg font-semibold py-2 px-4 rounded-full shadow">00:00</div>
+            </div>
+
+            <div id="questionContainer" class="bg-gray-50 p-6 rounded-lg text-left shadow-inner min-h-[150px] flex flex-col justify-center mb-6">
+                <p id="questionText" class="text-gray-800 text-xl font-medium mb-4">Memuat soal...</p>
+                <div id="optionsContainer">
+                    <!-- Opsi akan dimuat di sini -->
+                </div>
+            </div>
+
+            <div id="navigation" class="flex justify-between mt-6">
+                <button id="prevBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out" disabled>
+                    Sebelumnya
+                </button>
+                <button id="nextBtn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out">
+                    Selanjutnya
+                </button>
+            </div>
+            <button id="submitQuizBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full mt-6 transition duration-300 ease-in-out shadow-md hidden">
+                Selesai Kuis
+            </button>
+            <button id="surrenderBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full mt-4 transition duration-300 ease-in-out shadow-md">
+                Menyerah
+            </button>
+        </div>
+
+        <!-- Layar Hasil -->
+        <div id="resultsScreen" class="screen">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">Hasil Kuis</h2>
+            <div id="scoreDisplay" class="bg-amber-100 text-amber-700 text-2xl font-bold py-4 px-6 rounded-lg mb-6 shadow">
+                Skor Anda: 0 / 0
+            </div>
+            
+            <h3 id="finalMessage" class="text-2xl font-bold mb-4 text-gray-800"></h3>
+
+            <h3 class="text-2xl font-semibold mb-4 text-gray-700">Ulasan Jawaban:</h3>
+            <div id="reviewContainer" class="bg-gray-50 p-6 rounded-lg text-left shadow-inner max-h-96 overflow-y-auto">
+                <!-- Ulasan jawaban akan dimuat di sini -->
+            </div>
+
+            <button id="restartQuizBtn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-full mt-8 transition duration-300 ease-in-out shadow-md">
+                Mulai Kuis Baru
+            </button>
+        </div>
+        
+        <!-- Footer Kredit -->
+        <footer class="text-center text-gray-400 text-xs mt-8">
+            Developed by been x Gemini
+        </footer>
+    </div>
+
+    <!-- Modal Tutorial -->
+    <div id="tutorialModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Cara Bermain</h2>
+            <p class="text-gray-700 mb-4">Untuk menjawab soal, cukup tekan tombol keyboard:</p>
+            <ul class="list-disc list-inside text-left mx-auto mb-6 max-w-xs">
+                <li>Tekan <strong class="text-blue-600">'A'</strong> untuk memilih opsi A.</li>
+                <li>Tekan <strong class="text-blue-600">'B'</strong> untuk memilih opsi B.</li>
+            </ul>
+            <p class="text-gray-700 mb-6 font-semibold">Jawaban akan otomatis tersimpan dan kuis akan lanjut ke soal berikutnya. Gunakan tombol panah <strong class="text-blue-600">'Kiri'</strong> atau <strong class="text-blue-600">'Kanan'</strong> untuk navigasi soal.</p>
+            <button id="closeTutorialBtn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-5 rounded-full transition duration-300 ease-in-out shadow-md">
+                Oke, Mulai Kuis!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // --- DOM Elements ---
+            const app = document.getElementById('app');
+            const configScreen = document.getElementById('configScreen');
+            const quizScreen = document.getElementById('quizScreen');
+            const resultsScreen = document.getElementById('resultsScreen');
+
+            const fileInput = document.getElementById('fileInput');
+            const quizDurationSelect = document.getElementById('quizDuration');
+            const startQuizBtn = document.getElementById('startQuizBtn');
+            const fileError = document.getElementById('fileError');
+
+            const timerDisplay = document.getElementById('timerDisplay');
+            const currentQuestionNum = document.getElementById('currentQuestionNum');
+            const totalQuestionsNum = document.getElementById('totalQuestionsNum');
+            const questionText = document.getElementById('questionText');
+            const optionsContainer = document.getElementById('optionsContainer');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitQuizBtn = document.getElementById('submitQuizBtn');
+            const surrenderBtn = document.getElementById('surrenderBtn'); 
+
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const reviewContainer = document.getElementById('reviewContainer');
+            const restartQuizBtn = document.getElementById('restartQuizBtn');
+            const finalMessage = document.getElementById('finalMessage');
+
+            const tutorialModal = document.getElementById('tutorialModal');
+            const closeTutorialBtn = document.getElementById('closeTutorialBtn');
+            
+            const effectsContainer = document.getElementById('effects-container');
+
+            // --- Global Variables ---
+            let questionsData = [];
+            let currentQuestionIndex = 0;
+            let userAnswers = {};
+            let correctAnswers = {};
+            let timerInterval = null;
+            let effectInterval = null; // Untuk interval efek visual
+            let timeLeft = 0;
+            let quizActive = false;
+            let questionAnswered = false;
+
+            // --- Functions ---
+            
+            function showScreen(screenToShow) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.style.display = 'none';
+                });
+                screenToShow.style.display = 'block';
+            }
+
+            function displayQuestion(index) {
+                if (index < 0 || index >= questionsData.length) return;
+                questionAnswered = false;
+
+                currentQuestionIndex = index;
+                const question = questionsData[currentQuestionIndex];
+
+                currentQuestionNum.textContent = currentQuestionIndex + 1;
+                questionText.innerHTML = question.question.replace(/\n/g, '<br>');
+                optionsContainer.innerHTML = '';
+
+                question.options.forEach((option, i) => {
+                    const optionChar = String.fromCharCode(65 + i); // A, B
+                    const radioId = `q${question.id}-option${i}`;
+                    const div = document.createElement('div');
+                    div.classList.add('flex', 'items-center', 'mb-2', 'options-item');
+                    div.innerHTML = `
+                        <input type="radio" id="${radioId}" name="question-${question.id}" value="${optionChar}" class="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded cursor-pointer">
+                        <label for="${radioId}" class="ml-3 text-lg text-gray-700 cursor-pointer">${optionChar}. ${option}</label>
+                    `;
+                    optionsContainer.appendChild(div);
+
+                    if (userAnswers[question.id] === optionChar) {
+                        document.getElementById(radioId).checked = true;
+                    }
+                });
+
+                const radios = optionsContainer.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => {
+                    radio.addEventListener('change', handleOptionSelection);
+                });
+
+                if (userAnswers[question.id]) {
+                    radios.forEach(radio => radio.disabled = true);
+                }
+                
+                updateNavigationButtons();
+            }
+            
+            function handleOptionSelection() {
+                if (questionAnswered) return;
+                questionAnswered = true;
+
+                submitAnswer();
+
+                if (currentQuestionIndex < questionsData.length - 1) {
+                    setTimeout(() => navigateQuestions(1), 300);
+                }
+            }
+            
+            function navigateQuestions(direction) {
+                const newIndex = currentQuestionIndex + direction;
+                if (newIndex >= 0 && newIndex < questionsData.length) {
+                    displayQuestion(newIndex);
+                }
+            }
+            
+            function handleKeyboardInput(event) {
+                if (!quizActive || !tutorialModal.classList.contains('hidden')) return;
+                
+                const key = event.key.toLowerCase();
+                const currentQuestion = questionsData[currentQuestionIndex];
+
+                if (userAnswers[currentQuestion.id] && !questionAnswered) {
+                    if (event.key === 'ArrowRight') navigateQuestions(1);
+                    else if (event.key === 'ArrowLeft') navigateQuestions(-1);
+                    return;
+                }
+
+                if ((key === 'a' || key === 'b') && !questionAnswered) {
+                    const optionIndex = key.charCodeAt(0) - 'a'.charCodeAt(0);
+                    const radioToSelect = optionsContainer.querySelectorAll('input[type="radio"]')[optionIndex];
+                    if (radioToSelect && !radioToSelect.disabled) {
+                        radioToSelect.checked = true;
+                        handleOptionSelection();
+                    }
+                } else if (event.key === 'ArrowRight') {
+                    navigateQuestions(1);
+                } else if (event.key === 'ArrowLeft') {
+                    navigateQuestions(-1);
+                }
+            }
+
+            function submitAnswer() {
+                const currentQuestion = questionsData[currentQuestionIndex];
+                const selectedRadio = document.querySelector(`input[name="question-${currentQuestion.id}"]:checked`);
+
+                if (selectedRadio) {
+                    userAnswers[currentQuestion.id] = selectedRadio.value;
+                    optionsContainer.querySelectorAll('input[type="radio"]').forEach(radio => {
+                        radio.disabled = true;
+                    });
+                }
+            }
+
+            function updateNavigationButtons() {
+                prevBtn.disabled = currentQuestionIndex === 0;
+                prevBtn.classList.toggle('opacity-50', currentQuestionIndex === 0);
+                prevBtn.classList.toggle('cursor-not-allowed', currentQuestionIndex === 0);
+
+                nextBtn.disabled = currentQuestionIndex === questionsData.length - 1;
+                nextBtn.classList.toggle('opacity-50', currentQuestionIndex === questionsData.length - 1);
+                nextBtn.classList.toggle('cursor-not-allowed', currentQuestionIndex === questionsData.length - 1);
+
+                submitQuizBtn.classList.toggle('hidden', currentQuestionIndex !== questionsData.length - 1);
+            }
+
+            function parseQuestionsFromFile(content) {
+                questionsData = [];
+                correctAnswers = {};
+                userAnswers = {};
+
+                const parts = content.split('--- Kunci Jawaban ---');
+                if (parts.length < 2) throw new Error("Format file tidak valid.");
+                
+                const questionSection = parts[0];
+                const answerSection = parts[1];
+
+                const questionBlocks = questionSection.split(/\n\s*\n/);
+                let questionIdCounter = 0;
+                questionBlocks.forEach(block => {
+                    const lines = block.trim().split('\n').filter(line => line.trim() !== '');
+                    if (lines.length < 3 || !/^\d+\.\s/.test(lines[0])) return;
+
+                    const questionText = lines.slice(0, -2).join('\n').replace(/^\d+\.\s/, '').trim();
+                    const optionA = lines[lines.length - 2].replace(/^\s*A\.\s*/, '').trim();
+                    const optionB = lines[lines.length - 1].replace(/^\s*B\.\s*/, '').trim();
+
+                    if (questionText && optionA && optionB) {
+                        questionIdCounter++;
+                        questionsData.push({ id: questionIdCounter, question: questionText, options: [optionA, optionB] });
+                    }
+                });
+
+                if (questionsData.length === 0) throw new Error("Tidak ada soal valid.");
+
+                const answerLines = answerSection.split('\n').filter(line => line.trim() !== '');
+                answerLines.forEach(line => {
+                    const match = line.match(/^(\d+)\.\s*(.+)$/);
+                    if (match) {
+                        const id = parseInt(match[1]);
+                        const correctAnswerText = match[2].trim();
+                        const question = questionsData.find(q => q.id === id);
+                        if (question) {
+                            if (question.options[0].toLowerCase() === correctAnswerText.toLowerCase()) correctAnswers[id] = 'A';
+                            else if (question.options[1].toLowerCase() === correctAnswerText.toLowerCase()) correctAnswers[id] = 'B';
+                        }
+                    }
+                });
+                
+                totalQuestionsNum.textContent = questionsData.length;
+            }
+            
+            function showTutorial() {
+                if (questionsData.length === 0) {
+                    fileError.classList.remove('hidden');
+                    fileError.textContent = "Mohon unggah file soal yang valid terlebih dahulu.";
+                    return;
+                }
+                tutorialModal.classList.remove('hidden');
+            }
+
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                startQuizBtn.disabled = true;
+                startQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                fileError.classList.add('hidden');
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        parseQuestionsFromFile(e.target.result);
+                        if (questionsData.length > 0) {
+                            startQuizBtn.disabled = false;
+                            startQuizBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    } catch (error) {
+                        fileError.textContent = `Error: ${error.message}`;
+                        fileError.classList.remove('hidden');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            function startQuiz() {
+                tutorialModal.classList.add('hidden');
+                showScreen(quizScreen);
+                currentQuestionIndex = 0;
+                userAnswers = {};
+                quizActive = true;
+                timeLeft = parseInt(quizDurationSelect.value) * 60;
+                startTimer();
+                displayQuestion(currentQuestionIndex);
+            }
+
+            function startTimer() {
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        submitQuiz();
+                    } else {
+                        timeLeft--;
+                    }
+                }, 1000);
+            }
+
+            // --- Efek Visual Functions ---
+            function createHeart() {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.innerHTML = '❤️';
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.animationDuration = (Math.random() * 2 + 3) + 's'; // Durasi 3-5 detik
+                effectsContainer.appendChild(heart);
+                setTimeout(() => heart.remove(), 5000);
+            }
+
+            function runVisualEffects(score) {
+                stopVisualEffects(); // Hentikan efek sebelumnya
+                if (score >= 500) {
+                    effectInterval = setInterval(createHeart, 200);
+                } else {
+                    app.classList.add('shock-effect');
+                    // Hapus class setelah animasi selesai
+                    setTimeout(() => app.classList.remove('shock-effect'), 1200); // 0.4s * 3
+                }
+            }
+
+            function stopVisualEffects() {
+                clearInterval(effectInterval);
+                effectInterval = null;
+                effectsContainer.innerHTML = '';
+                app.classList.remove('shock-effect');
+            }
+
+            // --- End of Quiz ---
+            function submitQuiz() {
+                clearInterval(timerInterval);
+                quizActive = false;
+                let score = 0;
+                reviewContainer.innerHTML = '';
+
+                questionsData.forEach(q => {
+                    const userAnswerChar = userAnswers[q.id];
+                    const correctAnswerChar = correctAnswers[q.id];
+                    const isCorrect = (userAnswerChar === correctAnswerChar);
+                    if (isCorrect) score++;
+
+                    const userAnswerText = userAnswerChar ? (userAnswerChar === 'A' ? q.options[0] : q.options[1]) : "Tidak Dijawab";
+                    const correctAnswerText = correctAnswerChar ? (correctAnswerChar === 'A' ? q.options[0] : q.options[1]) : "N/A";
+
+                    const reviewItem = document.createElement('div');
+                    reviewItem.classList.add('mb-4', 'p-4', 'rounded-lg', isCorrect ? 'bg-green-50' : 'bg-red-50', 'shadow-sm');
+                    reviewItem.innerHTML = `
+                        <p class="font-semibold text-gray-800 mb-2">${q.id}. ${q.question.replace(/\n/g, '<br>')}</p>
+                        <p class="${isCorrect ? 'text-green-700' : 'text-red-700'}"><strong>Jawaban Anda:</strong> ${userAnswerText} ${isCorrect ? '&#10003;' : '&#10007;'}</p>
+                        ${!isCorrect ? `<p class="text-blue-700"><strong>Jawaban Benar:</strong> ${correctAnswerText}</p>` : ''}
+                    `;
+                    reviewContainer.appendChild(reviewItem);
+                });
+
+                scoreDisplay.textContent = `Skor Anda: ${score} / ${questionsData.length}`;
+                
+                if (score >= 500) {
+                    finalMessage.textContent = 'kon kok ndewo ngunu, asu kon!';
+                    finalMessage.className = 'text-2xl font-bold mb-4 text-green-700';
+                } else {
+                    finalMessage.textContent = 'sinau maneh, sek suwi kok';
+                    finalMessage.className = 'text-2xl font-bold mb-4 text-red-500';
+                }
+
+                showScreen(resultsScreen);
+                runVisualEffects(score);
+            }
+
+            function resetQuiz() {
+                stopVisualEffects();
+                showScreen(configScreen);
+                fileInput.value = '';
+                startQuizBtn.disabled = true;
+                startQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                fileError.classList.add('hidden');
+                questionsData = [];
+                quizActive = false;
+                clearInterval(timerInterval);
+            }
+
+            // --- Event Listeners ---
+            fileInput.addEventListener('change', handleFileUpload);
+            startQuizBtn.addEventListener('click', showTutorial);
+            closeTutorialBtn.addEventListener('click', startQuiz);
+            
+            prevBtn.addEventListener('click', () => navigateQuestions(-1));
+            nextBtn.addEventListener('click', () => navigateQuestions(1));
+            
+            submitQuizBtn.addEventListener('click', submitQuiz);
+            surrenderBtn.addEventListener('click', submitQuiz); 
+            restartQuizBtn.addEventListener('click', resetQuiz);
+            document.addEventListener('keydown', handleKeyboardInput);
+
+            // --- Initialization ---
+            showScreen(configScreen);
+        });
+    </script>
+</body>
+</html>
