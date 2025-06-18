@@ -1,0 +1,277 @@
+import random
+
+def generate_odd_even_question(question_id, difficulty="Easy"):
+    """
+    Menghasilkan satu soal pilihan ganda ganjil/genap berdasarkan tingkat kesulitan.
+    Tingkat kesulitan: Novice, Easy, Hard, Expert, God.
+    """
+    # Tipe-tipe soal:
+    # 1. single_number: Identifikasi ganjil/genap dari angka tunggal
+    # 2. operation: Identifikasi ganjil/genap dari hasil operasi (+, -, *)
+    # 3. list_count_parity: Hitung berapa banyak ganjil/genap dalam deret angka
+    # 4. list_sum_parity: Tentukan paritas dari JUMLAH semua angka dalam deret
+    # 5. abstract_parity_logic: Logika paritas abstrak dengan variabel
+
+    question_types = ["single_number", "operation", "list_count_parity", "list_sum_parity", "abstract_parity_logic"]
+    question_type = random.choice(question_types) # Pilih tipe soal secara acak
+
+    question_text = ""
+    correct_answer = ""
+    options_list = ["Ganjil", "Genap"] # Opsi default untuk sebagian besar tipe
+
+    # --- Parameter berdasarkan kesulitan ---
+    if difficulty == "Novice":
+        single_num_range = (1, 99)
+        operation_num_range_1 = (1, 50)
+        operation_num_range_2 = (1, 20)
+        list_len_range = (5, 10)
+        list_num_range = (1, 99)
+        operation_operators = ["+", "-"]
+        abstract_vars = 2
+        abstract_ops = ["sum_only"] # Hanya penjumlahan sederhana
+        abstract_incorrect_offset = [-1, 1]
+    elif difficulty == "Easy":
+        single_num_range = (100, 999)
+        operation_num_range_1 = (50, 500)
+        operation_num_range_2 = (10, 100)
+        list_len_range = (8, 15)
+        list_num_range = (1, 999)
+        operation_operators = ["+", "-", "*"]
+        abstract_vars = 2
+        abstract_ops = ["sum_product", "product_sum"] # Agak kompleks
+        abstract_incorrect_offset = [-2, -1, 1, 2]
+    elif difficulty == "Hard": # Mirip dengan "Sangat Sulit" sebelumnya
+        single_num_range = (100000, 9999999)
+        operation_num_range_1 = (1000, 99999)
+        operation_num_range_2 = (100, 9999)
+        list_len_range = (12, 25)
+        list_num_range = (1, 99999)
+        operation_operators = ["+", "-", "*"]
+        abstract_vars = 3
+        abstract_ops = ["sum_product", "product_sum", "complex_sum_diff_mult"]
+        abstract_incorrect_offset = [-3, -2, -1, 1, 2, 3]
+    elif difficulty == "Expert":
+        single_num_range = (1000000, 99999999)
+        operation_num_range_1 = (10000, 999999)
+        operation_num_range_2 = (1000, 99999)
+        list_len_range = (20, 40)
+        list_num_range = (1, 999999)
+        operation_operators = ["+", "-", "*"]
+        abstract_vars = 4
+        abstract_ops = ["nested_complex"] # Ekspresi lebih dalam
+        abstract_incorrect_offset = [-4, -3, -2, -1, 1, 2, 3, 4]
+    elif difficulty == "God":
+        single_num_range = (100000000, 999999999)
+        operation_num_range_1 = (100000, 9999999)
+        operation_num_range_2 = (10000, 999999)
+        list_len_range = (30, 50)
+        list_num_range = (1, 9999999)
+        operation_operators = ["+", "-", "*"]
+        abstract_vars = 4
+        abstract_ops = ["extreme_complex"] # Sangat kompleks, multi-step
+        abstract_incorrect_offset = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
+    else: # Default ke Hard jika input tidak valid
+        single_num_range = (100000, 9999999)
+        operation_num_range_1 = (1000, 99999)
+        operation_num_range_2 = (100, 9999)
+        list_len_range = (12, 25)
+        list_num_range = (1, 99999)
+        operation_operators = ["+", "-", "*"]
+        abstract_vars = 3
+        abstract_ops = ["sum_product", "product_sum", "complex_sum_diff_mult"]
+        abstract_incorrect_offset = [-3, -2, -1, 1, 2, 3]
+
+    # --- Generasi Soal ---
+    if question_type == "single_number":
+        num = random.randint(single_num_range[0], single_num_range[1])
+        correct_answer = "Genap" if num % 2 == 0 else "Ganjil"
+        question_text = f"{question_id}. Apakah angka {num} termasuk bilangan ganjil atau genap?"
+
+    elif question_type == "operation":
+        num1 = random.randint(operation_num_range_1[0], operation_num_range_1[1])
+        num2 = random.randint(operation_num_range_2[0], operation_num_range_2[1])
+        operator = random.choice(operation_operators)
+
+        is_num1_even = (num1 % 2 == 0)
+        is_num2_even = (num2 % 2 == 0)
+        result_is_even = False
+
+        if operator == "+":
+            result_is_even = (is_num1_even == is_num2_even)
+        elif operator == "-":
+            result_is_even = (is_num1_even == is_num2_even)
+        elif operator == "*":
+            result_is_even = (is_num1_even or is_num2_even)
+
+        correct_answer = "Genap" if result_is_even else "Ganjil"
+        question_text = f"{question_id}. Tanpa menghitung hasilnya, apakah hasil dari {num1} {operator} {num2} adalah bilangan ganjil atau genap?"
+    
+    elif question_type == "list_count_parity":
+        list_length = random.randint(list_len_range[0], list_len_range[1])
+        numbers_list = [random.randint(list_num_range[0], list_num_range[1]) for _ in range(list_length)]
+
+        ask_for_odd = random.choice([True, False])
+
+        if ask_for_odd:
+            count = sum(1 for n in numbers_list if n % 2 != 0)
+            question_text = f"{question_id}. Berapa banyak bilangan Ganjil dalam deret angka berikut?\n{', '.join(map(str, numbers_list))}"
+        else:
+            count = sum(1 for n in numbers_list if n % 2 == 0)
+            question_text = f"{question_id}. Berapa banyak bilangan Genap dalam deret angka berikut?\n{', '.join(map(str, numbers_list))}"
+
+        correct_answer = str(count)
+        
+        options_list_numeric = [count]
+        while len(options_list_numeric) < 2:
+            incorrect_offset = random.choice(abstract_incorrect_offset)
+            incorrect_option = count + incorrect_offset
+            if incorrect_option >= 0 and incorrect_option not in options_list_numeric:
+                options_list_numeric.append(incorrect_option)
+        
+        options_list = random.sample(options_list_numeric, 2)
+        options_list = [str(x) for x in options_list]
+
+    elif question_type == "list_sum_parity":
+        list_length = random.randint(list_len_range[0], list_len_range[1])
+        numbers_list = [random.randint(list_num_range[0], list_num_range[1]) for _ in range(list_length)]
+
+        odd_count = sum(1 for n in numbers_list if n % 2 != 0)
+        
+        total_sum_is_even = (odd_count % 2 == 0)
+        correct_answer = "Genap" if total_sum_is_even else "Ganjil"
+        
+        question_text = f"{question_id}. Tanpa menghitung jumlah total, apakah SUM (jumlah) dari deret angka berikut adalah bilangan ganjil atau genap?\n{', '.join(map(str, numbers_list))}"
+
+    elif question_type == "abstract_parity_logic":
+        # Logika paritas abstrak
+        var_names = ["X", "Y", "Z", "W"] # Hingga 4 variabel
+        random.shuffle(var_names)
+        
+        vars_in_use = var_names[:min(abstract_vars, len(var_names))]
+        
+        var_parities = {}
+        for var in vars_in_use:
+            parity_desc = random.choice(["Ganjil", "Genap"])
+            var_parities[var] = 1 if parity_desc == "Ganjil" else 0 # 1=Ganjil, 0=Genap
+
+        intro_text = "Jika " + ", ".join([f"{var} adalah bilangan {('Ganjil' if var_parities[var]==1 else 'Genap')}" for var in vars_in_use]) + ":"
+
+        expression_str = ""
+        calculated_parity = 0
+
+        op_choice = random.choice(abstract_ops)
+
+        if op_choice == "sum_only": # Novice
+            v1, v2 = var_parities[vars_in_use[0]], var_parities[vars_in_use[1]]
+            operator = random.choice(["+", "-"])
+            expression_str = f"{vars_in_use[0]} {operator} {vars_in_use[1]}"
+            calculated_parity = (v1 + v2) % 2 if operator == "+" else (v1 - v2 + 2) % 2
+            
+        elif op_choice == "sum_product": # Easy/Hard
+            v1, v2 = var_parities[vars_in_use[0]], var_parities[vars_in_use[1]]
+            op1 = random.choice(["+", "-"])
+            res_op1_val = (v1 + v2) % 2 if op1 == "+" else (v1 - v2 + 2) % 2
+            calculated_parity = (res_op1_val * v1) % 2
+            expression_str = f"({vars_in_use[0]} {op1} {vars_in_use[1]}) * {vars_in_use[0]}"
+            
+        elif op_choice == "product_sum": # Easy/Hard
+            v1, v2 = var_parities[vars_in_use[0]], var_parities[vars_in_use[1]]
+            op1 = random.choice(["*", "+"])
+            res_op1_val = (v1 * v2) % 2 if op1 == "*" else (v1 + v2) % 2
+            calculated_parity = (res_op1_val + v2) % 2
+            expression_str = f"({vars_in_use[0]} {op1} {vars_in_use[1]}) + {vars_in_use[1]}"
+
+        elif op_choice == "complex_sum_diff_mult": # Hard
+            v1, v2, v3 = var_parities[vars_in_use[0]], var_parities[vars_in_use[1]], var_parities[vars_in_use[2]]
+            part1_parity_val = (v1 + v2) % 2
+            part2_parity_val = (v2 * v3) % 2
+            calculated_parity = (part1_parity_val - part2_parity_val + 2) % 2
+            expression_str = f"({vars_in_use[0]} + {vars_in_use[1]}) - ({vars_in_use[1]} * {vars_in_use[2]})"
+
+        elif op_choice == "nested_complex": # Expert
+            v1, v2, v3, v4 = var_parities[vars_in_use[0]], var_parities[vars_in_use[1]], var_parities[vars_in_use[2]], var_parities[vars_in_use[3]]
+            # ((V1 + V2) * V3) - V4
+            temp_res1 = (v1 + v2) % 2
+            temp_res2 = (temp_res1 * v3) % 2
+            calculated_parity = (temp_res2 - v4 + 2) % 2
+            expression_str = f"(({vars_in_use[0]} + {vars_in_use[1]}) * {vars_in_use[2]}) - {vars_in_use[3]}"
+        
+        elif op_choice == "extreme_complex": # God
+            v1, v2, v3, v4 = var_parities[vars_in_use[0]], var_parities[vars_in_use[1]], var_parities[vars_in_use[2]], var_parities[vars_in_use[3]]
+            # Contoh kompleks: (V1 * V2 + V3) - V4 * (V1 + V3)
+            # Logika yang lebih rumit, bisa melibatkan dua ekspresi terpisah yang kemudian digabungkan
+            
+            # Sub-expression 1: (V1 * V2 + V3)
+            sub_expr1_val = ( (v1 * v2) % 2 + v3 ) % 2
+            # Sub-expression 2: V4 * (V1 + V3)
+            sub_expr2_val = ( v4 * (v1 + v3) % 2 ) % 2
+
+            # Gabungkan dengan pengurangan
+            calculated_parity = (sub_expr1_val - sub_expr2_val + 2) % 2
+            expression_str = f"({vars_in_use[0]} * {vars_in_use[1]} + {vars_in_use[2]}) - ({vars_in_use[3]} * ({vars_in_use[0]} + {vars_in_use[2]}))"
+
+
+        correct_answer = "Genap" if calculated_parity == 0 else "Ganjil"
+        question_text = f"{question_id}. {intro_text}\nMaka, apakah hasil dari {expression_str} adalah bilangan ganjil atau genap?"
+
+    random.shuffle(options_list)
+    formatted_options = f"   A. {options_list[0]}\n   B. {options_list[1]}"
+
+    return {
+        "question": question_text,
+        "options": formatted_options,
+        "answer": correct_answer
+    }
+
+def generate_questions_to_file(num_questions, difficulty, filename="soal_kecermatan_ganjil_genap.txt"):
+    """
+    Menghasilkan sejumlah soal dan menyimpannya ke dalam file teks.
+    """
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"--- {num_questions} Soal Kecermatan Ganjil Genap (Level: {difficulty.upper()}) ---\n\n")
+        questions = []
+        for i in range(1, num_questions + 1):
+            q_data = generate_odd_even_question(i, difficulty)
+            questions.append(q_data)
+            f.write(f"{q_data['question']}\n{q_data['options']}\n\n")
+
+        f.write("\n--- Kunci Jawaban ---\n\n")
+        for q_data in questions:
+            question_id_str = q_data['question'].split('.')[0]
+            try:
+                question_id = int(question_id_str)
+            except ValueError:
+                question_id = 0
+
+            f.write(f"{question_id}. {q_data['answer']}\n")
+
+    print(f"\n{num_questions} soal level '{difficulty.upper()}' telah berhasil dibuat dan disimpan di file '{filename}'.")
+
+# --- Cara Menggunakan ---
+# Tentukan jumlah soal yang ingin Anda buat
+num_soal_to_generate = 2000
+
+# Minta pengguna untuk memilih tingkat kesulitan
+print("Pilih tingkat kesulitan untuk soal:")
+print("1. Novice")
+print("2. Easy")
+print("3. Hard")
+print("4. Expert")
+print("5. God")
+
+difficulty_choice = input("Masukkan angka pilihan Anda (1-5): ")
+
+difficulty_map = {
+    "1": "Novice",
+    "2": "Easy",
+    "3": "Hard",
+    "4": "Expert",
+    "5": "God"
+}
+
+chosen_difficulty = difficulty_map.get(difficulty_choice, "Hard") # Default ke Hard jika input tidak valid
+
+# Tentukan nama file output berdasarkan kesulitan
+output_filename = f"soal_kecermatan_ganjil_genap_{chosen_difficulty.lower()}.txt"
+
+generate_questions_to_file(num_soal_to_generate, chosen_difficulty, output_filename)
